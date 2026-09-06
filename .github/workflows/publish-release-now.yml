@@ -1,0 +1,50 @@
+﻿name: Publish Release Artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Run ID containing desktop artifacts"
+        required: true
+        default: "34028280943"
+      tag:
+        description: "Release tag"
+        required: true
+        default: "v0.0.39"
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    name: Publish Release to GitHub
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download artifacts from build run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p release-assets
+          gh run download "${{ inputs.run_id }}" --repo "${{ github.repository }}" -p "desktop-*" -D release-assets
+          find release-assets -type f
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: T3 Code ${{ inputs.tag }}
+          files: |
+            release-assets/*/*.dmg
+            release-assets/*/*.zip
+            release-assets/*/*.AppImage
+            release-assets/*/*.exe
+            release-assets/*/*.blockmap
+            release-assets/*/*.yml
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          token: ${{ github.token }}
