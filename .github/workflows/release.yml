@@ -727,7 +727,7 @@ jobs:
   publish_cli:
     name: Publish CLI to npm
     needs: [preflight, relay_public_config, quality, build]
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.relay_public_config.result == 'success' && needs.quality.result == 'success' && needs.build.result == 'success' && secrets.NPM_TOKEN != '' }}
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.relay_public_config.result == 'success' && needs.quality.result == 'success' && needs.build.result == 'success' && github.repository == 'pingdotgg/t3' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -893,7 +893,7 @@ jobs:
   deploy_web:
     name: Deploy hosted web app
     needs: [preflight, relay_public_config, release]
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.relay_public_config.result == 'success' && needs.release.result == 'success' && secrets.VERCEL_TOKEN != '' }}
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.relay_public_config.result == 'success' && needs.release.result == 'success' && github.repository == 'pingdotgg/t3' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -1011,7 +1011,7 @@ jobs:
 
   finalize:
     name: Finalize release
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release.result == 'success' && needs.preflight.outputs.release_channel == 'stable' && secrets.RELEASE_APP_ID != '' }}
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release.result == 'success' && needs.preflight.outputs.release_channel == 'stable' && github.repository == 'pingdotgg/t3' }}
     needs: [preflight, release]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1093,7 +1093,7 @@ jobs:
     if: |
       always() && !cancelled() &&
       needs.release.result == 'success' &&
-      secrets.DISCORD_RELEASE_WEBHOOK_URL != ''
+      github.repository == 'pingdotgg/t3'
     needs: [preflight, release]
     runs-on: ubuntu-latest
     timeout-minutes: 10
