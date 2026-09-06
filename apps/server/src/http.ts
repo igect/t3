@@ -479,9 +479,19 @@ const openStaticFile = Effect.fn("openStaticFile")(function* (filePath: string) 
   // Reject directories and special files before opening. Response metadata comes from the handle.
   const pathInfo = yield* fileSystem.stat(filePath).pipe(Effect.orElseSucceed(() => null));
   if (pathInfo?.type !== "File") return null;
-  const file = yield* fileSystem.open(filePath, { flag: "r" });
-  const info = yield* file.stat;
-  return info.type === "File" ? { file, info } : null;
+  const opened = yield* fileSystem
+    .open(filePath, { flag: "r" })
+    .pipe(
+      Effect.flatMap((file) =>
+        file.stat.pipe(Effect.map((info) => (info.type === "File" ? { file, info } : null))),
+      ),
+      Effect.orElseSucceed(() => null),
+    );
+  if (opened) return opened;
+
+  const data = yield* fileSystem.readFile(filePath).pipe(Effect.orElseSucceed(() => null));
+  if (!data) return null;
+  return { data, info: pathInfo };
 });
 
 const streamStaticFile = (file: FileSystem.File, size: bigint) =>
@@ -613,12 +623,16 @@ const handleStaticAndDevRequest = Effect.fn("handleStaticAndDevRequest")(
 
     const contentType = isHtml ? "text/html; charset=utf-8" : mimeType;
     // The request scope closes the handle for GET, HEAD, 304, errors, and cancellation.
-    // HEAD still passes through compression, which selects headers without reading the stream.
-    return HttpServerResponse.stream(streamStaticFile(opened.file, fileInfo.size), {
-      headers,
-      contentType,
-      contentLength: Number(fileInfo.size),
-    });
+    return "file" in opened
+      ? HttpServerResponse.stream(streamStaticFile(opened.file, fileInfo.size), {
+          headers,
+          contentType,
+          contentLength: Number(fileInfo.size),
+        })
+      : HttpServerResponse.uint8Array(opened.data, {
+          headers,
+          contentType,
+        });
   },
   Effect.catchTags({
     PlatformError: () =>

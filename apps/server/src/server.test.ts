@@ -64,6 +64,7 @@ import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
+import * as PlatformError from "effect/PlatformError";
 import * as PubSub from "effect/PubSub";
 import * as Ref from "effect/Ref";
 import * as Queue from "effect/Queue";
@@ -1699,6 +1700,38 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
       const response = yield* HttpClient.get("/");
       assert.equal(response.status, 200);
       assert.include(yield* response.text, "router-static-ok");
+    }).pipe(Effect.provide(NodeHttpServer.layerTest)),
+  );
+
+  it.effect("serves static content when fileSystem.open fails (e.g. ASAR virtual filesystem)", () =>
+    Effect.gen(function* () {
+      const fileSystem = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const staticDir = yield* fileSystem.makeTempDirectoryScoped({ prefix: "t3-static-asar-" });
+      const indexPath = path.join(staticDir, "index.html");
+      yield* fileSystem.writeFileString(indexPath, "<html>asar-fallback-ok</html>");
+
+      const asarFailingFileSystem = FileSystem.FileSystem.of({
+        ...fileSystem,
+        open: (candidate, options) =>
+          Effect.fail(
+            PlatformError.systemError({
+              module: "FileSystem",
+              method: "open",
+              pathOrDescriptor: candidate,
+              reason: "NotFound",
+              syscall: "open",
+            }),
+          ),
+      });
+
+      yield* buildAppUnderTest({ config: { staticDir } }).pipe(
+        Effect.provideService(FileSystem.FileSystem, asarFailingFileSystem),
+      );
+
+      const response = yield* HttpClient.get("/");
+      assert.equal(response.status, 200);
+      assert.include(yield* response.text, "asar-fallback-ok");
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
