@@ -32,7 +32,6 @@ on:
 concurrency:
   group: release-${{ (github.event_name == 'schedule' || inputs.channel == 'nightly') && 'nightly' || 'stable' }}
   cancel-in-progress: false
-  queue: max
 
 permissions:
   contents: read
@@ -889,15 +888,7 @@ jobs:
           fail_on_unmatched_files: true
           token: ${{ github.token }}
 
-  publish_aur:
-    name: Publish AUR package
-    needs: [preflight, release]
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release.result == 'success' }}
-    uses: ./.github/workflows/publish-aur.yml
-    with:
-      release_tag: ${{ needs.preflight.outputs.tag }}
-    secrets:
-      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+
 
   deploy_web:
     name: Deploy hosted web app
