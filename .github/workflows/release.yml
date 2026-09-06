@@ -238,14 +238,21 @@ jobs:
         name: Resolve production relay public config
         shell: bash
         run: |
-          relay_domain="${RELAY_DOMAIN:-relay.t3.codes}"
-          if [[ -z "$relay_domain" && -n "${RELAY_API_ZONE_NAME:-}" ]]; then
-            relay_domain="relay.$RELAY_API_ZONE_NAME"
+          if [[ -n "${CLERK_PUBLISHABLE_KEY:-}" ]]; then
+            relay_domain="${RELAY_DOMAIN:-relay.t3.codes}"
+            if [[ -z "$relay_domain" && -n "${RELAY_API_ZONE_NAME:-}" ]]; then
+              relay_domain="relay.$RELAY_API_ZONE_NAME"
+            fi
+            echo "clerk_publishable_key=$CLERK_PUBLISHABLE_KEY" >> "$GITHUB_OUTPUT"
+            echo "clerk_jwt_template=${CLERK_JWT_TEMPLATE:-t3}" >> "$GITHUB_OUTPUT"
+            echo "clerk_cli_oauth_client_id=${CLERK_CLI_OAUTH_CLIENT_ID:-}" >> "$GITHUB_OUTPUT"
+            echo "relay_url=https://$relay_domain" >> "$GITHUB_OUTPUT"
+          else
+            echo "clerk_publishable_key=" >> "$GITHUB_OUTPUT"
+            echo "clerk_jwt_template=" >> "$GITHUB_OUTPUT"
+            echo "clerk_cli_oauth_client_id=" >> "$GITHUB_OUTPUT"
+            echo "relay_url=" >> "$GITHUB_OUTPUT"
           fi
-          echo "clerk_publishable_key=${CLERK_PUBLISHABLE_KEY:-pk_test_placeholder}" >> "$GITHUB_OUTPUT"
-          echo "clerk_jwt_template=${CLERK_JWT_TEMPLATE:-t3}" >> "$GITHUB_OUTPUT"
-          echo "clerk_cli_oauth_client_id=${CLERK_CLI_OAUTH_CLIENT_ID:-placeholder}" >> "$GITHUB_OUTPUT"
-          echo "relay_url=https://$relay_domain" >> "$GITHUB_OUTPUT"
 
   # node-pty publishes no Linux prebuilt and the WSL backend runs under the
   # distro's own (Linux) Node, which can't load the Windows/Electron binary. We

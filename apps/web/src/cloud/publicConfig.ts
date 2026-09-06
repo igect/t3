@@ -71,7 +71,12 @@ export function resolveRelayTracingConfig() {
 
 export function hasCloudPublicConfig(): boolean {
   const config = resolveCloudPublicConfig();
-  return Boolean(config.clerkPublishableKey && config.clerkJwtTemplate && config.relayUrl);
+  return Boolean(
+    config.clerkPublishableKey &&
+      !config.clerkPublishableKey.includes("placeholder") &&
+      config.clerkJwtTemplate &&
+      config.relayUrl,
+  );
 }
 
 export function resolveRelayClerkTokenOptions() {

@@ -1,9 +1,28 @@
 import { passkeys } from "@clerk/electron/passkeys";
 import { ClerkProvider } from "@clerk/electron/react";
-import type { ReactNode } from "react";
+import { Component, type ReactNode } from "react";
 
 import { ManagedRelayAuthProvider } from "../../cloud/managedAuth";
 import { clerkAppearance } from "./clerkAppearance";
+
+class ClerkErrorBoundary extends Component<
+  { readonly children: ReactNode; readonly fallback: ReactNode },
+  { readonly hasError: boolean }
+> {
+  override state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  override componentDidCatch(error: unknown) {
+    console.error("ClerkProvider failed to initialize, falling back to unmanaged mode:", error);
+  }
+
+  override render() {
+    return this.state.hasError ? this.props.fallback : this.props.children;
+  }
+}
 
 /**
  * Electron half of the managed-auth boundary. The Electron provider statically
@@ -19,8 +38,10 @@ export default function ElectronManagedAuthShell({
   readonly children: ReactNode;
 }) {
   return (
-    <ClerkProvider appearance={clerkAppearance} publishableKey={publishableKey} passkeys={passkeys}>
-      <ManagedRelayAuthProvider>{children}</ManagedRelayAuthProvider>
-    </ClerkProvider>
+    <ClerkErrorBoundary fallback={children}>
+      <ClerkProvider appearance={clerkAppearance} publishableKey={publishableKey} passkeys={passkeys}>
+        <ManagedRelayAuthProvider>{children}</ManagedRelayAuthProvider>
+      </ClerkProvider>
+    </ClerkErrorBoundary>
   );
 }

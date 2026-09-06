@@ -594,10 +594,30 @@ export const make = Effect.gen(function* () {
     });
     window.webContents.on("before-input-event", (event, input) => {
       quitShortcutHandler(event, input);
+      if (input.type === "keyDown") {
+        if (
+          input.key === "F12" ||
+          ((input.control || input.meta) && input.shift && input.key.toLowerCase() === "i")
+        ) {
+          window.webContents.toggleDevTools();
+        }
+      }
       if (input.type !== "keyDown" || !input.isAutoRepeat) return;
       const modifier = environment.platform === "darwin" ? input.meta : input.control;
       if (modifier && !input.alt && !input.shift && input.key.toLowerCase() === "w") {
         event.preventDefault();
+      }
+    });
+    window.webContents.on("console-message", (_event, level, message, line, sourceId) => {
+      if (level >= 2) {
+        void runPromise(
+          logWindowWarning("renderer console", {
+            level,
+            message,
+            line,
+            sourceId,
+          }),
+        );
       }
     });
 
@@ -762,7 +782,11 @@ export const make = Effect.gen(function* () {
     });
 
     loadApplication();
-    if (environment.isDevelopment) {
+    if (
+      environment.isDevelopment ||
+      process.env.T3CODE_DEVTOOLS === "1" ||
+      process.argv.includes("--devtools")
+    ) {
       window.webContents.openDevTools({ mode: "detach" });
     }
 

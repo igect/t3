@@ -74,6 +74,8 @@ export function makeDesktopContentSecurityPolicy(input: DesktopProtocolRegistrat
     "'wasm-unsafe-eval'",
     ...(clerkOrigin ? [clerkOrigin] : []),
     "https://challenges.cloudflare.com",
+    "https://*.clerk.accounts.dev",
+    "https://*.clerk.com",
   ];
 
   // The renderer connects directly to user-configured environments in addition to
